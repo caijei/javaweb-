@@ -114,12 +114,7 @@ export default {
         };
     },
     methods: {
-        queryBtn() {
-            // 查询逻辑
-        },
-        changeBtn() {
-            // 修改逻辑
-        },
+       
     },
 };
 </script>

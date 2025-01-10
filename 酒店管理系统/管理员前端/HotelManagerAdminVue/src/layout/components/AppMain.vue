@@ -1,8 +1,3 @@
-<!--
- * @Description: 
- * @Author: Rabbiter
- * @Date: 2023-03-11 13:37:23
--->
 <template>
   <section class="app-main">
     <transition name="fade-transform" mode="out-in">

@@ -23,23 +23,29 @@ import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
-@RestController
-@RequestMapping("/user")
+@RestController  // 标注为 REST 控制器
+@RequestMapping("/user")  // 请求路径前缀为 "/user"
 public class RoomController {
 
-    @Resource
+    @Resource  // 自动注入 RoomService
     private RoomService roomService;
-    @Resource
+    @Resource  // 自动注入 OrderService
     private OrderService orderService;
-    @Resource
+    @Resource  // 自动注入 TypeService
     private TypeService typeService;
-    @Resource
+    @Resource  // 自动注入 UserService
     private UserService userService;
 
+    /**
+     * 获取指定日期范围内的房间列表
+     * @param dateSectionDTO 日期范围数据传输对象
+     * @return 包含房间信息的列表
+     */
     @PostMapping(value = "/listRoom")
     public CommonResult<List<ReturnRoomDTO>> listRoom(@RequestBody DateSectionDTO dateSectionDTO) {
         CommonResult<List<ReturnRoomDTO>> commonResult = new CommonResult<>();
 
+        // 调用服务获取房间列表
         List<ReturnRoomDTO> list = roomService.listRooms(dateSectionDTO);
 
         commonResult.setData(list);
@@ -48,22 +54,33 @@ public class RoomController {
         return commonResult;
     }
 
+    /**
+     * 获取房间的详细信息
+     * @param roomId 房间 ID
+     * @return 包含房间详细信息的对象
+     */
     @PostMapping(value = "/roomDetail")
     public CommonResult<ReturnRoomDTO> roomDetail(@RequestParam("roomId") Integer roomId) {
         CommonResult<ReturnRoomDTO> commonResult = new CommonResult<>();
 
+        // 调用服务获取房间详细信息
         ReturnRoomDTO returnRoomDTO = roomService.roomDetail(roomId);
-//        System.out.println(returnRoomDTO);
         commonResult.setData(returnRoomDTO);
         commonResult.setCode(StatusCode.COMMON_SUCCESS.getCode());
         commonResult.setMessage(StatusCode.COMMON_SUCCESS.getMessage());
         return commonResult;
     }
 
+    /**
+     * 预订房间
+     * @param bookDTO 预订数据传输对象
+     * @return 预订结果
+     */
     @PostMapping("/bookRoom")
     public CommonResult<String> bookRoom(@RequestBody BookDTO bookDTO) {
         CommonResult<String> commonResult = new CommonResult<>();
 
+        // 从 session 中获取当前登录用户信息
         User user = (User) WebUtils.getSession().getAttribute("loginUser");
         if(user == null) {
             commonResult.setData("登录信息过期");
@@ -71,20 +88,22 @@ public class RoomController {
             commonResult.setMessage(StatusCode.COMMON_FAIL.getMessage());
             return commonResult;
         }
+
+        // 获取房间和房型信息
         Room room = roomService.getById(bookDTO.getRoomId());
         Type type = typeService.getById(room.getType());
         Order order = new Order();
         BeanUtils.copyProperties(bookDTO,  order);
         order.setUserId(user.getId());
 
+        // 计算预订天数及总价格
         int days = (int) Math.ceil((bookDTO.getLeaveTime().getTime() - bookDTO.getInTime().getTime()) / (60 * 60 * 24 * 1000 * 1.0));
-        // System.out.println(days);
-
         order.setRealPrice(type.getPrice() * days);
-        // System.out.println(order);
 
+        // 保存订单信息
         orderService.save(order);
 
+        // 更新用户状态为已预订
         user.setState(1);
         userService.updateById(user);
 
@@ -95,15 +114,23 @@ public class RoomController {
         return commonResult;
     }
 
+    /**
+     * 根据房型 ID 获取房间列表
+     * @param typeDTO 房型数据传输对象
+     * @return 包含指定房型的房间列表
+     */
     @PostMapping("/listRoomsByTypeId")
     public CommonResult<List<ReturnRoomDTO>> listRoomsByTypeId(@RequestBody TypeDTO typeDTO) {
         CommonResult<List<ReturnRoomDTO>> commonResult = new CommonResult<>();
-        QueryWrapper queryWrapper = new QueryWrapper();
 
+        // 复制房型 DTO 信息到日期范围 DTO
         DateSectionDTO dateSectionDTO = new DateSectionDTO();
         BeanUtils.copyProperties(typeDTO, dateSectionDTO);
+
+        // 调用服务获取房间列表
         List<ReturnRoomDTO> roomList = roomService.listRooms(dateSectionDTO);
 
+        // 筛选符合房型 ID 的房间
         List<ReturnRoomDTO> returnRoomList = new ArrayList<>();
         if (0 != roomList.size()) {
             for (ReturnRoomDTO room : roomList) {
@@ -118,5 +145,4 @@ public class RoomController {
         commonResult.setMessage(StatusCode.COMMON_SUCCESS.getMessage());
         return commonResult;
     }
-
 }
